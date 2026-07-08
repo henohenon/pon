@@ -1,0 +1,4 @@
+.env
+logs/
+zig-out/
+.zig-cache/
