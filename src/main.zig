@@ -8,9 +8,10 @@ const paste = @import("paste.zig");
 const log = @import("log.zig");
 
 pub fn main(init: std.process.Init) void {
+    const center = dialog.captureCenter(); // capture Zed window center before anything else
     earlyLog(init.io, "pon starting\n");
     const named_mode = parseNamedFlag(init.minimal.args, init.gpa);
-    run(init, named_mode) catch |err| {
+    run(init, named_mode, center) catch |err| {
         var buf: [256]u8 = undefined;
         const msg = std.fmt.bufPrint(&buf, "fatal: {}\n", .{err}) catch "fatal: unknown\n";
         earlyLog(init.io, msg);
@@ -43,7 +44,7 @@ fn earlyLog(io: Io, msg: []const u8) void {
     f.writePositionalAll(io, msg, stat.size) catch {};
 }
 
-fn run(init: std.process.Init, named_mode: bool) !void {
+fn run(init: std.process.Init, named_mode: bool, center: dialog.Center) !void {
     const gpa = init.arena.allocator();
     const io = init.io;
     const env = init.environ_map;
@@ -100,7 +101,7 @@ fn run(init: std.process.Init, named_mode: bool) !void {
     // Determine image filename
     const name: []const u8 = if (named_mode) blk: {
         log.write("mode: named", .{});
-        const input = (try dialog.askFilename(gpa, io)) orelse {
+        const input = (try dialog.askFilename(gpa, io, center)) orelse {
             log.write("dialog cancelled", .{});
             return;
         };
