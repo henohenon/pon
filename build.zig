@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         },
     });
     exe.root_module.addIncludePath(b.path("lib"));
+    exe.subsystem = .Windows;
     exe.root_module.linkSystemLibrary("user32", .{});
     exe.root_module.linkSystemLibrary("kernel32", .{});
 
