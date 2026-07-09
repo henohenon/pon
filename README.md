@@ -6,8 +6,8 @@ Clipboard image → Markdown paste helper for Zed on Windows.
 
 | Launcher | Flag | What it does |
 |---|---|---|
-| `pon.vbs` | *(none)* | Auto: saves clipboard PNG → `images/<slug>/NN.png`, pastes `![NN](…)` |
-| `pon-name.vbs` | `--name` | Same, but prompts for a custom filename first |
+| `pn-img.vbs` | *(none)* | Auto: saves clipboard PNG → `images/<slug>/NN.png`, pastes `![NN](…)` |
+| `pon-img-name.vbs` | `--name` | Same, but prompts for a custom filename first |
 | `pon-today.vbs` | `--today` | Opens (or creates) today's `YYYY-MM-DD.md` in Zed |
 | `pon-new-md.vbs` | `--new-md` | Prompts for a name, opens (or creates) `<name>.md` in Zed |
 
