@@ -3,18 +3,29 @@ const Io = std.Io;
 const config = @import("config.zig");
 const db = @import("db.zig");
 const clipboard = @import("clipboard.zig");
+const dialog = @import("dialog.zig");
 const paste = @import("paste.zig");
 const log = @import("log.zig");
 
 pub fn main(init: std.process.Init) void {
     earlyLog(init.io, "pon starting\n");
-    run(init) catch |err| {
+    const named_mode = parseNamedFlag(init.minimal.args, init.gpa);
+    run(init, named_mode) catch |err| {
         var buf: [256]u8 = undefined;
         const msg = std.fmt.bufPrint(&buf, "fatal: {}\n", .{err}) catch "fatal: unknown\n";
         earlyLog(init.io, msg);
         log.write("fatal: {}", .{err});
         std.debug.print("pon: {}\n", .{err});
     };
+}
+
+fn parseNamedFlag(args: std.process.Args, gpa: std.mem.Allocator) bool {
+    var it = std.process.Args.Iterator.initAllocator(args, gpa) catch return false;
+    _ = it.next(); // skip exe name
+    while (it.next()) |arg| {
+        if (std.mem.eql(u8, arg, "--name")) return true;
+    }
+    return false;
 }
 
 fn earlyLog(io: Io, msg: []const u8) void {
@@ -32,7 +43,7 @@ fn earlyLog(io: Io, msg: []const u8) void {
     f.writePositionalAll(io, msg, stat.size) catch {};
 }
 
-fn run(init: std.process.Init) !void {
+fn run(init: std.process.Init, named_mode: bool) !void {
     const gpa = init.arena.allocator();
     const io = init.io;
     const env = init.environ_map;
@@ -86,19 +97,28 @@ fn run(init: std.process.Init) !void {
     var img_dir = try nono_dir.openDir(io, img_rel, .{ .access_sub_paths = true, .iterate = true });
     defer img_dir.close(io);
 
-    // Next sequential image number
-    var max_n: u32 = 0;
-    var it = img_dir.iterate();
-    while (try it.next(io)) |entry| {
-        if (!std.mem.endsWith(u8, entry.name, ".png")) continue;
-        const stem = entry.name[0 .. entry.name.len - 4];
-        const n = std.fmt.parseInt(u32, stem, 10) catch continue;
-        if (n > max_n) max_n = n;
-    }
-    const next_n = max_n + 1;
-
-    var name_buf: [16]u8 = undefined;
-    const name = try std.fmt.bufPrint(&name_buf, "{d:0>2}.png", .{next_n});
+    // Determine image filename
+    const name: []const u8 = if (named_mode) blk: {
+        log.write("mode: named", .{});
+        const input = (try dialog.askFilename(gpa, io)) orelse {
+            log.write("dialog cancelled", .{});
+            return;
+        };
+        log.write("input: {s}", .{input});
+        break :blk try std.fmt.allocPrint(gpa, "{s}.png", .{input});
+    } else blk: {
+        log.write("mode: auto", .{});
+        var max_n: u32 = 0;
+        var it = img_dir.iterate();
+        while (try it.next(io)) |entry| {
+            if (!std.mem.endsWith(u8, entry.name, ".png")) continue;
+            const stem_n = entry.name[0 .. entry.name.len - 4];
+            const n = std.fmt.parseInt(u32, stem_n, 10) catch continue;
+            if (n > max_n) max_n = n;
+        }
+        var name_buf: [16]u8 = undefined;
+        break :blk try gpa.dupe(u8, try std.fmt.bufPrint(&name_buf, "{d:0>2}.png", .{max_n + 1}));
+    };
 
     // Save PNG
     const out = try img_dir.createFile(io, name, .{});
