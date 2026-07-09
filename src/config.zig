@@ -57,5 +57,5 @@ fn parseTarget(
             return gpa.dupe(u8, trimmed["TARGET=".len..]);
         }
     }
-    return error.NonoNotSet;
+    return error.TargetNotSet;
 }

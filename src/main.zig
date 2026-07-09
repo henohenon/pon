@@ -118,13 +118,13 @@ fn runImage(init: std.process.Init, named_mode: bool, center: dialog.Center) !vo
     }
     log.write("clipboard: {} bytes", .{png.?.len});
 
-    var nono_dir = try Io.Dir.openDirAbsolute(io, cfg.target, .{ .access_sub_paths = true });
-    defer nono_dir.close(io);
+    var target_dir = try Io.Dir.openDirAbsolute(io, cfg.target, .{ .access_sub_paths = true });
+    defer target_dir.close(io);
 
     const img_rel = try std.fmt.allocPrint(gpa, "images\\{s}", .{slug});
-    try nono_dir.createDirPath(io, img_rel);
+    try target_dir.createDirPath(io, img_rel);
 
-    var img_dir = try nono_dir.openDir(io, img_rel, .{ .access_sub_paths = true, .iterate = true });
+    var img_dir = try target_dir.openDir(io, img_rel, .{ .access_sub_paths = true, .iterate = true });
     defer img_dir.close(io);
 
     const name: []const u8 = if (named_input) |input|
