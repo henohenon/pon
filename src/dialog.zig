@@ -7,12 +7,6 @@ const ASFW_ANY: DWORD = 0xFFFFFFFF;
 
 extern "user32" fn AllowSetForegroundWindow(dwProcessId: DWORD) callconv(.winapi) BOOL;
 
-pub const Center = struct { x: i32, y: i32 };
-
-pub fn captureCenter() Center {
-    return .{ .x = -1, .y = -1 };
-}
-
 // Z-order: ShowDialog(IWin32Window) makes the dialog an owned window of Zed.
 // Owned windows are always above their owner — no TopMost games needed.
 // SetProcessDPIAware() before any HWND so GetWindowRect coords are correct.
@@ -94,8 +88,7 @@ const PS_CMD =
     "if($own){$r=$f.ShowDialog($own)}else{$r=$f.ShowDialog()};" ++
     "if($r -eq 'OK' -and $t.Text -ne ''){Write-Output $t.Text}";
 
-pub fn askFilename(gpa: std.mem.Allocator, io: Io, center: Center) !?[]u8 {
-    _ = center;
+pub fn askFilename(gpa: std.mem.Allocator, io: Io) !?[]u8 {
     _ = AllowSetForegroundWindow(ASFW_ANY);
 
     const result = try std.process.run(gpa, io, .{

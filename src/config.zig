@@ -1,7 +1,5 @@
 const std = @import("std");
 const Io = std.Io;
-const Environ = std.process.Environ;
-
 pub const Config = struct {
     target: []const u8,
     dir: Io.Dir,
@@ -10,7 +8,6 @@ pub const Config = struct {
 pub fn load(
     gpa: std.mem.Allocator,
     io: Io,
-    env: *Environ.Map,
 ) !Config {
     // Find .env by walking up from exe directory
     var exe_buf: [Io.Dir.max_path_bytes]u8 = undefined;
@@ -37,7 +34,7 @@ pub fn load(
         const buf = try gpa.alloc(u8, size);
         const n = try f.readPositionalAll(io, buf, 0);
 
-        const target = try parseTarget(gpa, buf[0..n], env);
+        const target = try parseTarget(gpa, buf[0..n]);
         const dir = try Io.Dir.openDirAbsolute(io, current, .{ .access_sub_paths = true });
         return .{ .target = target, .dir = dir };
     }
@@ -47,9 +44,7 @@ pub fn load(
 fn parseTarget(
     gpa: std.mem.Allocator,
     content: []const u8,
-    env: *Environ.Map,
 ) ![]const u8 {
-    _ = env;
     var lines = std.mem.splitScalar(u8, content, '\n');
     while (lines.next()) |line| {
         const trimmed = std.mem.trim(u8, line, " \r\t");

@@ -23,14 +23,13 @@ extern "kernel32" fn GetLocalTime(lpSystemTime: *SYSTEMTIME) callconv(.winapi) v
 const Mode = enum { image_auto, image_named, today, new_md };
 
 pub fn main(init: std.process.Init) void {
-    const center = dialog.captureCenter();
     earlyLog(init.io, "pon starting\n");
     const mode = parseMode(init.minimal.args, init.gpa);
     (switch (mode) {
-        .image_auto => runImage(init, false, center),
-        .image_named => runImage(init, true, center),
+        .image_auto => runImage(init, false),
+        .image_named => runImage(init, true),
         .today => runToday(init),
-        .new_md => runNewMd(init, center),
+        .new_md => runNewMd(init),
     }) catch |err| {
         var buf: [256]u8 = undefined;
         const msg = std.fmt.bufPrint(&buf, "fatal: {}\n", .{err}) catch "fatal: unknown\n";
@@ -66,12 +65,12 @@ fn earlyLog(io: Io, msg: []const u8) void {
     f.writePositionalAll(io, msg, stat.size) catch {};
 }
 
-fn runImage(init: std.process.Init, named_mode: bool, center: dialog.Center) !void {
+fn runImage(init: std.process.Init, named_mode: bool) !void {
     const gpa = init.arena.allocator();
     const io = init.io;
     const env = init.environ_map;
 
-    const cfg = try config.load(gpa, io, env);
+    const cfg = try config.load(gpa, io);
     defer cfg.dir.close(io);
 
     try log.init(cfg.dir, io);
@@ -103,7 +102,7 @@ fn runImage(init: std.process.Init, named_mode: bool, center: dialog.Center) !vo
 
     const named_input: ?[]u8 = if (named_mode) blk: {
         log.write("mode: named", .{});
-        const input = (try dialog.askFilename(gpa, io, center)) orelse {
+        const input = (try dialog.askFilename(gpa, io)) orelse {
             log.write("dialog cancelled", .{});
             return;
         };
@@ -159,9 +158,8 @@ fn runImage(init: std.process.Init, named_mode: bool, center: dialog.Center) !vo
 fn runToday(init: std.process.Init) !void {
     const gpa = init.arena.allocator();
     const io = init.io;
-    const env = init.environ_map;
 
-    const cfg = try config.load(gpa, io, env);
+    const cfg = try config.load(gpa, io);
     defer cfg.dir.close(io);
 
     try log.init(cfg.dir, io);
@@ -184,12 +182,11 @@ fn runToday(init: std.process.Init) !void {
     log.write("today: {s}", .{md_path});
 }
 
-fn runNewMd(init: std.process.Init, center: dialog.Center) !void {
+fn runNewMd(init: std.process.Init) !void {
     const gpa = init.arena.allocator();
     const io = init.io;
-    const env = init.environ_map;
 
-    const cfg = try config.load(gpa, io, env);
+    const cfg = try config.load(gpa, io);
     defer cfg.dir.close(io);
 
     try log.init(cfg.dir, io);
@@ -197,7 +194,7 @@ fn runNewMd(init: std.process.Init, center: dialog.Center) !void {
 
     log.write("=== pon new-md ===", .{});
 
-    const input = (try dialog.askFilename(gpa, io, center)) orelse {
+    const input = (try dialog.askFilename(gpa, io)) orelse {
         log.write("dialog cancelled", .{});
         return;
     };
