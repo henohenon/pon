@@ -41,7 +41,7 @@ const PS_PREFIX =
     "$f.FormBorderStyle='None';" ++
     "$f.BackColor=[System.Drawing.Color]::FromArgb(55,55,55);" ++
     "$f.TopMost=$true;" ++
-    "$f.ShowInTaskbar=$false;" ++
+    "$f.StartPosition='CenterScreen';" ++
     "$f.ClientSize=New-Object System.Drawing.Size(330,36);" ++
     "$f.Padding=New-Object System.Windows.Forms.Padding(1);" ++
     "$f.KeyPreview=$true;";
@@ -63,22 +63,10 @@ const PS_SUFFIX =
     "if($r -eq 'OK' -and $t.Text -ne ''){Write-Output $t.Text}";
 
 pub fn askFilename(gpa: std.mem.Allocator, io: Io, center: Center) !?[]u8 {
+    _ = center;
     _ = AllowSetForegroundWindow(ASFW_ANY);
 
-    const x = if (center.x >= 0) center.x - @divTrunc(DIALOG_W, 2) else -1;
-    const y = if (center.y >= 0) center.y - @divTrunc(DIALOG_H, 2) else -1;
-
-    const pos_part = if (x >= 0)
-        try std.fmt.allocPrint(gpa,
-            "$f.StartPosition='Manual';" ++
-            "$f.Location=New-Object System.Drawing.Point({d},{d});",
-            .{ x, y })
-    else
-        try gpa.dupe(u8, "$f.StartPosition='CenterScreen';");
-    defer gpa.free(pos_part);
-
-    const ps_cmd = try std.mem.concat(gpa, u8, &.{ PS_PREFIX, pos_part, PS_SUFFIX });
-    defer gpa.free(ps_cmd);
+    const ps_cmd = PS_PREFIX ++ PS_SUFFIX;
 
     const result = try std.process.run(gpa, io, .{
         .argv = &.{ "powershell.exe", "-NoProfile", "-Command", ps_cmd },
