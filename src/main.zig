@@ -80,6 +80,17 @@ fn run(init: std.process.Init, named_mode: bool, center: dialog.Center) !void {
     const slug = basename[0 .. basename.len - ".md".len];
     log.write("slug: {s}", .{slug});
 
+    // Named mode: show dialog first (before clipboard check)
+    const named_input: ?[]u8 = if (named_mode) blk: {
+        log.write("mode: named", .{});
+        const input = (try dialog.askFilename(gpa, io, center)) orelse {
+            log.write("dialog cancelled", .{});
+            return;
+        };
+        log.write("input: {s}", .{input});
+        break :blk input;
+    } else null;
+
     // Get PNG bytes from clipboard
     const png = try clipboard.getPng(gpa);
     if (png == null) {
@@ -99,15 +110,9 @@ fn run(init: std.process.Init, named_mode: bool, center: dialog.Center) !void {
     defer img_dir.close(io);
 
     // Determine image filename
-    const name: []const u8 = if (named_mode) blk: {
-        log.write("mode: named", .{});
-        const input = (try dialog.askFilename(gpa, io, center)) orelse {
-            log.write("dialog cancelled", .{});
-            return;
-        };
-        log.write("input: {s}", .{input});
-        break :blk try std.fmt.allocPrint(gpa, "{s}.png", .{input});
-    } else blk: {
+    const name: []const u8 = if (named_input) |input|
+        try std.fmt.allocPrint(gpa, "{s}.png", .{input})
+    else blk: {
         log.write("mode: auto", .{});
         var max_n: u32 = 0;
         var it = img_dir.iterate();
