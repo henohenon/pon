@@ -17,6 +17,8 @@ Assign the `.vbs` files to hotkeys in your launcher (Stream Deck, AutoHotkey, et
 
 Reads Zed's SQLite state DB (`%LOCALAPPDATA%\Zed\db\0-stable\db.sqlite`) to find the currently active editor. The DB is locked while Zed runs, so pon copies it to a temp file first.
 
+See [docs/active-file-detection.md](docs/active-file-detection.md) for the design and why pon doesn't follow the focused window.
+
 ## Config
 
 `.env` file in the same directory as `pon.exe`:
