@@ -79,9 +79,9 @@ fn runImage(init: std.process.Init, named_mode: bool) !void {
     log.write("=== pon start ===", .{});
     log.write("target: {s}", .{cfg.target});
 
-    const active_path = try db.getActiveEditorPath(gpa, io, env);
+    const active_path = try db.getActiveEditorPath(gpa, io, env, cfg.target);
     if (active_path == null) {
-        log.write("no active editor found", .{});
+        log.write("no active editor under TARGET found", .{});
         return;
     }
     const path = active_path.?;
@@ -89,10 +89,6 @@ fn runImage(init: std.process.Init, named_mode: bool) !void {
 
     if (!std.mem.endsWith(u8, path, ".md")) {
         log.write("not a .md file, exit", .{});
-        return;
-    }
-    if (!std.mem.startsWith(u8, path, cfg.target)) {
-        log.write("not under TARGET, exit", .{});
         return;
     }
 

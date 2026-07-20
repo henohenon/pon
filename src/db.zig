@@ -5,6 +5,12 @@ const c = @cImport(@cInclude("sqlite3.h"));
 const log = @import("log.zig");
 
 const ZED_DB_SUBPATH = "Zed\\db\\0-stable\\db.sqlite";
+// Returns active editors across all open workspaces, most-recently-serialized
+// first. We do NOT LIMIT 1: with multiple Zed windows open (e.g. an AI agent
+// editing one project while the user writes in another), w.timestamp reflects
+// when a workspace was last serialized, not which window has focus, so the
+// globally-newest workspace is often the wrong one. The caller walks these in
+// order and picks the first editor under TARGET.
 const QUERY =
     \\SELECT e.buffer_path
     \\FROM items i
@@ -13,13 +19,13 @@ const QUERY =
     \\WHERE i.active = 1 AND i.kind = 'Editor' AND e.buffer_path IS NOT NULL
     \\  AND w.session_id IS NOT NULL
     \\ORDER BY w.timestamp DESC
-    \\LIMIT 1
 ;
 
 pub fn getActiveEditorPath(
     gpa: std.mem.Allocator,
     io: Io,
     env: *Environ.Map,
+    target: []const u8,
 ) !?[]const u8 {
     const local_appdata = env.get("LOCALAPPDATA") orelse return error.NoLocalAppData;
     const temp = env.get("TEMP") orelse env.get("TMP") orelse return error.NoTempDir;
@@ -47,14 +53,18 @@ pub fn getActiveEditorPath(
     }
     defer _ = c.sqlite3_finalize(stmt);
 
-    const rc = c.sqlite3_step(stmt);
-    if (rc == c.SQLITE_DONE) return null;
-    if (rc != c.SQLITE_ROW) {
-        log.write("db step error: {}", .{rc});
-        return error.DbStepFailed;
-    }
+    // Walk workspaces newest-first; return the first active editor under TARGET.
+    while (true) {
+        const rc = c.sqlite3_step(stmt);
+        if (rc == c.SQLITE_DONE) return null;
+        if (rc != c.SQLITE_ROW) {
+            log.write("db step error: {}", .{rc});
+            return error.DbStepFailed;
+        }
 
-    const text = c.sqlite3_column_text(stmt, 0) orelse return null;
-    const len: usize = @intCast(c.sqlite3_column_bytes(stmt, 0));
-    return try gpa.dupe(u8, text[0..len]);
+        const text = c.sqlite3_column_text(stmt, 0) orelse continue;
+        const len: usize = @intCast(c.sqlite3_column_bytes(stmt, 0));
+        const path = text[0..len];
+        if (std.mem.startsWith(u8, path, target)) return try gpa.dupe(u8, path);
+    }
 }
