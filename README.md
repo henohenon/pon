@@ -1,3 +1,5 @@
+<img src="assets/icon.svg" alt="pon icon" width="96" align="right">
+
 # pon
 
 Clipboard image → Markdown paste helper for Zed on Windows.
