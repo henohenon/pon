@@ -1,4 +1,6 @@
-<img src="assets/icon.svg" alt="pon icon" width="96" align="right">
+<div align="center">
+  <img src="assets/icon.svg" alt="pon icon" width="96">
+</div>
 
 # pon
 
