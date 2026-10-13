@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This repository was archived. Continuous in **[ponv2](https://github.com/henohenon/ponv2)**.
+
 <div align="center">
   <img src="assets/icon.svg" alt="pon icon" width="96">
 </div>
